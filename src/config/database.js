@@ -11,6 +11,10 @@ const sequelize = new Sequelize(
                 port: process.env.DB_PORT,
                 dialect: "postgres",
                 logging: false,
+                // Neon (and most hosted Postgres) only accept SSL connections
+                dialectOptions: process.env.DB_SSL === "true"
+                    ? { ssl: { require: true, rejectUnauthorized: false } }
+                    : {},
             }
 )
 
