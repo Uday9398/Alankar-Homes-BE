@@ -1,4 +1,5 @@
 import express from "express";
+import cookieParser from "cookie-parser";
 import dotenv from "dotenv"
 import sequelize, { connectDB } from "./config/database.js";
 import "./models/index.js";
@@ -10,8 +11,11 @@ dotenv.config()
 
 const app = express();
 
+// Render sits behind a proxy, this lets req.secure see the original https request
+app.set("trust proxy", 1);
 
 app.use(express.json());
+app.use(cookieParser());
 
 // Product photos uploaded from the admin panel
 app.use("/uploads", express.static(UPLOAD_ROOT, { maxAge: "7d" }));

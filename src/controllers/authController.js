@@ -1,5 +1,16 @@
+import jwt from "jsonwebtoken";
 import { registerUser, loginUser } from "../services/authService.js";
 import { notifyNewUser } from "../services/notificationService.js";
+
+export const AUTH_COOKIE = "token";
+
+// httpOnly keeps the token away from page scripts, sameSite blocks cross-site requests from using it
+const authCookieOptions = (req) => ({
+    httpOnly: true,
+    secure: req.secure,
+    sameSite: "strict",
+    path: "/",
+});
 
 const register = async (req, res) => {
     try {
@@ -36,15 +47,19 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const result = await loginUser({
+        const { token, user } = await loginUser({
             email,
             password
         })
 
+        // The cookie expires together with the token inside it
+        const { exp } = jwt.decode(token);
+        res.cookie(AUTH_COOKIE, token, { ...authCookieOptions(req), expires: new Date(exp * 1000) });
+
         return res.status(200).json({
             success: true,
             message: "Login Successful",
-            data: result
+            data: { user }
         })
     } catch (error) {
         console.error("Login error:", error);
@@ -71,4 +86,13 @@ const getMe = async (req, res) => {
     }
 };
 
-export { register, login, getMe }
+// Page scripts can't read the httpOnly cookie, so only the server can remove it
+const logout = (req, res) => {
+    res.clearCookie(AUTH_COOKIE, authCookieOptions(req));
+    return res.status(200).json({
+        success: true,
+        message: "Logged out"
+    });
+};
+
+export { register, login, logout, getMe }
